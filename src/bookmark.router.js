@@ -4,11 +4,18 @@ const uuid = require('uuid/v4');
 
 const bookmarkRouter = express.Router();
 const bodyParser = express.json();
+const BookmarkService = require('./bookmarks-service');
 
 bookmarkRouter
   .route('/')
-  .get((req, res) => {
-    res.json(bookmarks);
+  .get((req, res, next) => {
+    const knexInstance = req.app.get('db');
+    BookmarkService.getAllBookmarks(knexInstance)
+      .then(bookmarks => {
+        res.json(bookmarks);
+      })
+      .catch(next);
+    
   })
   .post(bodyParser, (req, res) => {
     const { name, rating } = req.body;
@@ -41,16 +48,27 @@ bookmarkRouter
 
 bookmarkRouter
   .route('/:id')
-  .get((req, res) =>{
+  .get((req, res, next) =>{
+    const knexInstance = req.app.get('db');
     const { id } = req.params;
-
     if(!id){
       res
         .status(404)
         .send('The id you sent does not exist');
     }
-    const bookmark = bookmarks.find(bm => bm.id === id);
-    res.status(200).send(bookmark);
+    BookmarkService.getById(knexInstance, id)
+      .then(bookmark => {
+        if(!bookmark){
+          res
+            .status(404)
+            .send('No Content');
+        }
+        res
+          .status(200)
+          .send(bookmark);
+      })
+      .catch(next);
+  
   })
   .delete((req, res) => {
     
