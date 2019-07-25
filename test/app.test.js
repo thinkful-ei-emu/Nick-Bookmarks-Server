@@ -1,4 +1,3 @@
-const BookmarksService = require('../src/bookmarks-service');
 const knex = require('knex');
 const app = require('../src/app');
 const makeBookmarksArr = require('./bookmarks.fixtures');
@@ -39,7 +38,7 @@ describe('Bookmarks endpoints', () => {
       });
       it('responds 200 with bookmarks', () => {
         return supertest(app)
-          .get('/bookmarks')
+          .get('/api/bookmarks')
           .set({'Authorization': 'Bearer 58bffe62-cef0-417c-860d-f684152335e1'})
           .expect(200, testBookmarks)
           .expect('Content-Type', /json/);
@@ -47,63 +46,80 @@ describe('Bookmarks endpoints', () => {
       it('should respond 200 with a single bookmark from bookmarks/:id', () => {
         const id = testBookmarks[0].id;
         return supertest(app)
-          .get(`/bookmarks/${id}`)
+          .get(`/api/bookmarks/${id}`)
           .set({'Authorization': 'Bearer 58bffe62-cef0-417c-860d-f684152335e1'})
           .expect(200, testBookmarks[0])
           .expect('Content-Type', /json/);
       });
     });
     context('Given no bookmarks exist', () => {
-      it('GET /bookmarks should return an empty array', () => {
+      it('GET /api/bookmarks should return an empty array', () => {
         return supertest(app)
-          .get('/bookmarks')
+          .get('/api/bookmarks')
           .set({'Authorization': 'Bearer 58bffe62-cef0-417c-860d-f684152335e1'})
           .expect(200, []);
       });
-      it('GET /bookmarks/:id should return 404', () => {
+      it('GET /api/bookmarks/:id should return 404', () => {
         return supertest(app)
-          .get('/bookmarks/1')
+          .get('/api/bookmarks/1')
           .set({'Authorization': 'Bearer 58bffe62-cef0-417c-860d-f684152335e1'})
           .expect(404);
       });
     });
   });
-});
-  
-
-
-it('Should respond 201 upon successful post', () => {
-  return supertest(app)
-    .post('/bookmarks')
-    .set({'Authorization': 'Bearer 58bffe62-cef0-417c-860d-f684152335e1'})
-    .send({
-      'name': 'thinkful',
-      'rating': '5'
-    })
-    .expect(201);
-});
-const required = ['name','rating'];
-required.forEach(val => {
-  it(`should respond with 400 if no ${val}` , () => {
-    let otherVal;
-    if(val === 'name'){
-      otherVal = {'rating': '2'};
-    }else{
-      otherVal = {'name': 'nick'};
-    }
-    return supertest(app)
-      .post('/bookmarks')
-      .set({'Authorization': 'Bearer 58bffe62-cef0-417c-860d-f684152335e1'})
-      .send(otherVal)
-      .expect(400, `Need ${val}`);
+  describe('DELETE method', () => {
+    const testBookmarks = makeBookmarksArr();
+    beforeEach(() => {
+      return db
+        .insert(testBookmarks)
+        .into('bookmarks');
+    });
+    it('DELETE /api/bookmarks/:id should return 204', () => {
+      return supertest(app)
+        .delete('/api/bookmarks/1')
+        .set({'Authorization': 'Bearer 58bffe62-cef0-417c-860d-f684152335e1'})
+        .expect(204);
+    });
+  });
+  describe('POST method', () => {
+    it('Should respond 201 with the id and location of new bookmark (happy case)', () => {
+      const newBookmark = {
+        title: 'Test Post',
+        url: 'www.testpost.com',
+        rating: 5
+      };
+      return supertest(app)
+        .post('/api/bookmarks')
+        .set({'Authorization': 'Bearer 58bffe62-cef0-417c-860d-f684152335e1'})
+        .send(newBookmark)
+        .expect(201)
+        .then(res => {
+          expect(res.body.title).to.eql(newBookmark.title);
+          expect(res.body.url).to.eql(newBookmark.url);
+          expect(res.body.rating).to.eql(newBookmark.rating);
+          expect(res.body).to.have.property('id');
+          expect(res.body.description).to.eql(null);
+          expect(res.headers.location).to.eql(`/${res.body.id}`);
+        });
+    });
+    const requiredVals = ['title', 'url', 'rating'];
+    requiredVals.forEach(val => {
+      const newBookmark = {
+        title: 'test',
+        url: 'www.test.com',
+        rating: 5
+      };
+      it(`Should send 400 status if ${val} not entered`, () => {
+        delete newBookmark[val];
+        return supertest(app)
+          .post('/api/bookmarks')
+          .set({'Authorization': 'Bearer 58bffe62-cef0-417c-860d-f684152335e1'})
+          .send(newBookmark)
+          .expect(400);
+      });
+    });
+    
   });
 });
-
-it('Should delete bookmarks successfully', () => {
-  return supertest(app)
-    .delete('/bookmarks/1')
-    .set({'Authorization': 'Bearer 58bffe62-cef0-417c-860d-f684152335e1'})
-    .expect(204);
-});
-
+  
 

@@ -18,7 +18,7 @@ const BookmarksService = {
       .where('id', id)
       .first();
   },
-  deleteArticle(db, id) {
+  deleteBookmark(db, id) {
     return db('bookmarks')
       .where({ id })
       .delete();

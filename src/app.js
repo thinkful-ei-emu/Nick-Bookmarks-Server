@@ -38,7 +38,7 @@ if (NODE_ENV !== 'production') {
   }));
 }
 
-app.use('/bookmarks',bookmarkRouter);
+app.use('/api/bookmarks',bookmarkRouter);
 
 
 // eslint-disable-next-line no-unused-vars
